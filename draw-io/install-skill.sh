@@ -43,7 +43,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 git clone --depth 1 "$REPO_URL" "$tmp" >/dev/null 2>&1
 mkdir -p "$SKILL_DIR"
-cp "$tmp/skill-cli/drawio/SKILL.md" "$SKILL_DIR/SKILL.md"
+cp "$tmp/plugins/claude-code/skills/drawio/SKILL.md" "$SKILL_DIR/SKILL.md"
 say "SKILL.md copiado."
 
 # ---------------------------------------------------------------------------
