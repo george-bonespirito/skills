@@ -1,65 +1,80 @@
 # skills
 
-Coleção pessoal de **skills** para agentes de IA (Claude Code e afins). Este repositório é a fonte de publicação: cada skill que eu crio ou uso no dia a dia mora aqui, versionada e pronta para instalar.
+Coleção pessoal de **skills** para agentes de IA (Claude Code, Cursor e afins).
+Este repositório é a **fonte de publicação** e um **marketplace**: cada skill
+mora aqui como um plugin autocontido, versionado e pronto para instalar.
 
-> **Publicar uma skill = fazer commit dela aqui.** Consumidores instalam direto deste repositório.
+> **Publicar = fazer commit aqui.** Consumidores instalam via marketplace.
 
-## O que é uma skill
+## O que é uma skill / plugin
 
-Cada diretório top-level é uma skill autocontida, instalada no contexto **global** do Claude Code (`~/.claude/`) — não por projeto. Uma skill entrega instruções/capacidades reutilizáveis para o agente, mais um instalador idempotente.
+- **Skill** — uma pasta com `SKILL.md` na raiz (frontmatter `name` +
+  `description`). Formato cross-agent: Claude Code, Cursor e outros leem o mesmo
+  `SKILL.md`.
+- **Plugin** — o bundle distribuível que carrega uma ou mais skills + manifesto.
+  É o que o marketplace instala.
+
+Glossário completo em [`CONTEXT.md`](./CONTEXT.md). Decisões de arquitetura em
+[`docs/adr/`](./docs/adr/).
 
 ## Skills disponíveis
 
-| Skill | Descrição | Instalação |
+| Plugin | Descrição | Instalação |
 |---|---|---|
-| [`draw-io/`](./draw-io) | Provisiona a skill oficial draw.io (`jgraph/drawio-mcp`) no contexto global, com um _house-theme_ flat e `adaptiveColors` para leitura confortável em light/dark. | `./draw-io/install-skill.sh` |
+| [`draw-io/`](./draw-io) | Gera diagramas draw.io editáveis e exporta como SVG com _house-theme_ flat/`adaptiveColors` (XML embarcado, legível em light/dark). | `/plugin install draw-io@torgge-skills` |
 
 ## Instalação
 
-Cada skill traz seu próprio `install-skill.sh` — idempotente, seguro para re-rodar e para colar num `bootstrap.sh`:
+### Claude Code
 
-```bash
-chmod +x draw-io/install-skill.sh && ./draw-io/install-skill.sh
+Este repositório é um marketplace (`.claude-plugin/marketplace.json` na raiz):
+
+```
+/plugin marketplace add https://codeberg.org/torgge/skills
+/plugin install draw-io@torgge-skills
 ```
 
-O instalador provisiona a skill em `~/.claude/` e imprime os passos de validação manual ao final. Não há build, lint ou suíte de testes no repositório — skills são instaladores shell + documentação, e a validação é por-skill e manual.
+### Cursor
 
-## Convenção de estrutura
+Cada plugin traz um `.cursor-plugin/plugin.json`. Instale pela
+[Cursor Marketplace](https://cursor.com/marketplace) quando listado, ou aponte o
+Cursor para o diretório do plugin.
+
+## Estrutura
 
 ```
 skills/
-├── CLAUDE.md              # guia da coleção (para o agente)
-├── README.md              # este arquivo
-└── <skill>/
-    ├── install-skill.sh   # instalador idempotente (entry point)
-    └── CLAUDE.md          # guia scoped da skill (opcional)
+├── .claude-plugin/
+│   └── marketplace.json       # marketplace Claude: lista os plugins
+├── CONTEXT.md                 # glossário (ubiquitous language)
+├── docs/adr/                  # decisões de arquitetura
+├── README.md                  # este arquivo
+└── <plugin>/
+    ├── .claude-plugin/plugin.json   # manifesto Claude
+    ├── .cursor-plugin/plugin.json   # manifesto Cursor
+    ├── skills/<skill>/SKILL.md      # a skill (compartilhada pelos dois)
+    ├── LICENSE
+    └── README.md
 ```
 
-- **`install-skill.sh`** — entry point da skill. Idempotente: pode rodar quantas vezes quiser. Provisiona para `~/.claude/` e imprime a checagem manual.
-- **`CLAUDE.md`** (por skill) — guia scoped ao diretório da skill. Documenta a arquitetura própria da skill, não a da coleção.
-
-### A invariante das duas camadas (design do instalador)
-
-Padrão central que todo instalador deve preservar (referência: `draw-io/install-skill.sh`): manter artefatos **upstream** separados das **customizações locais**, para que updates do upstream nunca sobrescrevam edits do usuário.
-
-- **Upstream** (clonado/baixado a cada run) → `cp` / overwrite. Nunca editar à mão; mudanças se perdem no re-run.
-- **Local** (temas, config, pointers) → escrito **só se faltar**, guardado por `[ -f ]` ou `grep -q`. Re-runs preservam.
-
-Ao escrever ou editar um instalador: **clobber no upstream, guard no local.**
+Um `skills/` por plugin, dois manifestos apontando para ele — um repo, dois
+marketplaces. Componentes ficam na raiz do plugin; só o manifesto vai no
+diretório `.*-plugin/`.
 
 ## Adicionando uma nova skill
 
-1. Crie um diretório top-level com o nome da skill.
-2. Adicione um `install-skill.sh` idempotente seguindo a invariante das duas camadas.
-3. Adicione um `CLAUDE.md` scoped se a skill tiver arquitetura não-óbvia.
-4. Registre a skill na tabela [Skills disponíveis](#skills-disponíveis) acima.
+1. Crie um diretório top-level para o plugin.
+2. Adicione `skills/<skill>/SKILL.md` (frontmatter `name` + `description`).
+3. Adicione os manifestos `.claude-plugin/plugin.json` e
+   `.cursor-plugin/plugin.json`, mais `LICENSE` e `README.md`.
+4. Registre o plugin em `.claude-plugin/marketplace.json` e na tabela acima.
 5. Faça commit — esse commit é a publicação.
 
 ## Convenções de Git
 
-- **Conventional Commits + emoji.** Uma skill por PR.
+- **Conventional Commits + emoji.** Um plugin por PR.
 - Branch a partir de `main` (`feature/<slug>`); nunca commit direto em `main`.
-- SemVer em tags para releases.
+- SemVer nos manifestos (`version`) e em tags para releases.
 
 ## MCP
 

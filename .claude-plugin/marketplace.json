@@ -1,0 +1,16 @@
+{
+  "name": "torgge-skills",
+  "description": "Personal collection of AI-agent skills as installable plugins for Claude Code and Cursor.",
+  "owner": {
+    "name": "George Bonespirito",
+    "email": "george@bonespirito.com",
+    "url": "https://codeberg.org/torgge/skills"
+  },
+  "plugins": [
+    {
+      "name": "draw-io",
+      "source": "./draw-io",
+      "description": "Generate editable draw.io diagrams and export them as house-themed SVG (embedded XML, readable in light/dark). Mermaid or XML authoring, ELK auto-layout, browser-URL output."
+    }
+  ]
+}

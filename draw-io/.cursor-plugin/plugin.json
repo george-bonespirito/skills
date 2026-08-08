@@ -1,0 +1,10 @@
+{
+  "name": "draw-io",
+  "description": "Generate editable draw.io diagrams and export them as house-themed SVG (embedded XML, readable in light/dark). Mermaid or XML authoring, ELK auto-layout, browser-URL output.",
+  "version": "0.1.0",
+  "author": {
+    "name": "George Bonespirito"
+  },
+  "license": "MIT",
+  "keywords": ["drawio", "diagram", "c4", "mermaid", "svg", "architecture", "flowchart"]
+}
