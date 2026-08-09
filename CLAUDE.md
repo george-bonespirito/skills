@@ -32,10 +32,11 @@ Plugins are **declarative bundles the host installs** — they cannot run bash o
 1. Create a top-level directory for the plugin.
 2. Add `skills/<skill>/SKILL.md` (vendored content; fold any local layer in).
 3. Add `.claude-plugin/plugin.json` + `.cursor-plugin/plugin.json`, `LICENSE` (open source), `README.md`.
-4. Register it in `.claude-plugin/marketplace.json`.
+4. Register it in `.claude-plugin/marketplace.json` **and** `.cursor-plugin/marketplace.json`.
 5. Commit (see git conventions below) — that commit is the publish.
 
 ## Git
 
 - Conventional Commits + emoji (see `~/.claude/rules/commits.md`). One plugin per PR; branch off `main` (`feature/<slug>`), never commit to `main` directly.
+- **Mirror GitHub:** `origin` = Codeberg (canonical). Remote `github` = `github.com/torgge/skills`, a public mirror that exists only for the Cursor marketplace (its publish flow authenticates via GitHub repo ownership). To publish: `git push github <branch>` after the canonical `git push origin`.
 - MCP: `.claude/settings.local.json` enables the `graphify` MCP server for this repo.
