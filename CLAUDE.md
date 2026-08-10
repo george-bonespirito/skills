@@ -4,36 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A personal **skills collection** — the publishing source for skills authored or used day-to-day with AI agents (Claude Code and others). Each top-level directory is one self-contained skill. "Publishing" a skill = committing it here; consumers install it from this repo.
+A personal **skills collection** that is also a **plugin marketplace** — the publishing source for skills used day-to-day with AI agents (Claude Code, Cursor, and others). Each top-level directory is one self-contained plugin bundling a skill. "Publishing" = committing it here and listing it in `.claude-plugin/marketplace.json`; consumers install via the marketplace.
 
-Repo root is `/Users/gbonespirito/Development/skills` (the git root). `draw-io/` is the first skill and the **reference implementation** — mirror its conventions when adding new skills.
+Repo root is `/Users/gbonespirito/Development/skills` (the git root). `draw-io/` is the first plugin and the **reference implementation** — mirror its layout when adding new ones. See [`CONTEXT.md`](./CONTEXT.md) for the glossary and [`docs/adr/`](./docs/adr/) for decisions.
 
-## Skill directory convention
+## Plugin directory convention
 
-Each skill lives in its own top-level directory and is installed into the **global** Claude Code context (`~/.claude/`), not per-project. The convention, established by `draw-io/`:
+Each plugin lives in its own top-level directory and is installed by the host (Claude Code / Cursor), not by a shell script. The layout, established by `draw-io/`:
 
-- **`install-skill.sh`** — idempotent bash installer, the skill's entry point. Safe to re-run and to paste into a `bootstrap.sh`. It provisions the skill into `~/.claude/` and prints manual validation steps.
-- **`CLAUDE.md`** (per skill) — scoped guidance for that skill's directory. Documents the skill's own architecture, not the collection's.
+- **`skills/<skill>/SKILL.md`** — the skill itself (YAML frontmatter: `name`, `description`). One `skills/` dir, shared by both manifests.
+- **`.claude-plugin/plugin.json`** — Claude manifest (`name` required).
+- **`.cursor-plugin/plugin.json`** — Cursor manifest (`name` required).
+- **`LICENSE`** + **`README.md`** at the plugin root. Cursor requires plugins be open source.
 
-There is no repo-wide build, lint, or test harness — skills are shell installers plus docs. Validation is per-skill and manual (each `install-skill.sh` prints its own check).
+Components (`skills/`, agents, hooks) sit at the plugin **root**; only the manifest goes inside the `.*-plugin/` directory — misplacing components inside it makes them load silently invisible.
 
-## The upstream/local two-layer invariant (installer design)
+The repo root carries `.claude-plugin/marketplace.json` (`name`, `owner`, `plugins[]`), making the collection a Claude marketplace. There is no repo-wide build/lint/test — validation is per-plugin (`claude plugin validate`, then a manual `/plugin install` smoke test).
 
-The core pattern every installer should preserve (see `draw-io/install-skill.sh`): keep **upstream** artifacts separate from **local** customizations so upstream updates never clobber user edits.
+## Self-contained, not installer-fetched
 
-- Upstream files (fetched/cloned each run) → `cp` / overwrite. Never hand-edit; changes are lost on re-run.
-- Local files (themes, config, spine pointers) → written **only if missing**, guarded by `[ -f ]` or `grep -q`. Re-runs preserve them.
+Plugins are **declarative bundles the host installs** — they cannot run bash or edit the user's global `~/.claude/CLAUDE.md`. So skill content is **vendored in-repo**, never fetched at install time, and any local layer (e.g. draw-io's house theme) is **folded into `SKILL.md`**, not injected via a global-config pointer.
 
-When authoring or editing an installer, honor this split: clobber upstream, guard local.
+> Historical note: draw-io began as an `install-skill.sh` wrapper around an upstream fetch, governed by a two-layer "clobber upstream / guard local" invariant. That model is retired — with content vendored, there is no install-time fetch to guard. See `docs/adr/0001` for the rationale.
 
-## Adding a new skill
+## Adding a new plugin
 
-1. Create a top-level directory named for the skill.
-2. Add an idempotent `install-skill.sh` following the two-layer invariant above.
-3. Add a scoped `CLAUDE.md` if the skill has non-obvious architecture.
-4. Commit (see git conventions below) — that commit is the publish.
+1. Create a top-level directory for the plugin.
+2. Add `skills/<skill>/SKILL.md` (vendored content; fold any local layer in).
+3. Add `.claude-plugin/plugin.json` + `.cursor-plugin/plugin.json`, `LICENSE` (open source), `README.md`.
+4. Register it in `.claude-plugin/marketplace.json` **and** `.cursor-plugin/marketplace.json`.
+5. Commit (see git conventions below) — that commit is the publish.
 
 ## Git
 
-- Conventional Commits + emoji (see `~/.claude/rules/commits.md`). One skill per PR; branch off `main` (`feature/<slug>`), never commit to `main` directly.
+- Conventional Commits + emoji (see `~/.claude/rules/commits.md`). One plugin per PR; branch off `main` (`feature/<slug>`), never commit to `main` directly.
+- **Mirror GitHub:** `origin` = Codeberg (canonical). Remote `github` = `github.com/torgge/skills`, a public mirror that exists only for the Cursor marketplace (its publish flow authenticates via GitHub repo ownership). To publish: `git push github <branch>` after the canonical `git push origin`.
 - MCP: `.claude/settings.local.json` enables the `graphify` MCP server for this repo.
