@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-manifest.sh\"",
+            "timeout": 30,
+            "statusMessage": "Validando manifest…"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/auto-pr-codeberg.sh\"",
+            "if": "Bash(git push*)",
+            "timeout": 30,
+            "statusMessage": "Abrindo PR no Codeberg…"
+          }
+        ]
+      }
+    ]
+  }
+}
