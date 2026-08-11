@@ -1,0 +1,10 @@
+{
+  "name": "konsist-run-skill",
+  "description": "Run-skill for the Konsist Kotlin static-analysis library: a container-first driver that scopes Kotlin and asserts architecture rules via the Konsist API, plus the from-source build gotchas.",
+  "version": "0.1.0",
+  "author": {
+    "name": "George Bonespirito"
+  },
+  "license": "MIT",
+  "keywords": ["konsist", "kotlin", "static-analysis", "architecture-testing", "gradle", "run-skill"]
+}

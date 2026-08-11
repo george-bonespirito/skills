@@ -11,6 +11,11 @@
       "name": "draw-io",
       "source": "./draw-io",
       "description": "Generate editable draw.io diagrams and export them as house-themed SVG (embedded XML, readable in light/dark). Mermaid or XML authoring, ELK auto-layout, browser-URL output."
+    },
+    {
+      "name": "konsist-run-skill",
+      "source": "./konsist-run-skill",
+      "description": "Run-skill for the Konsist Kotlin static-analysis library: a container-first driver that scopes Kotlin and asserts architecture rules via the Konsist API, plus the from-source build gotchas."
     }
   ]
 }
