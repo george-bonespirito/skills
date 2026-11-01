@@ -21,6 +21,7 @@ Glossário completo em [`CONTEXT.md`](./CONTEXT.md). Decisões de arquitetura em
 
 | Plugin | Descrição | Instalação |
 |---|---|---|
+| [`check-after-implementation/`](./check-after-implementation) | Após implementação: gates de qualidade e segurança em loop até ficarem verdes; twin bloqueante no GitHub Actions. | `/plugin install check-after-implementation@torgge-skills` |
 | [`draw-io/`](./draw-io) | Gera diagramas draw.io editáveis e exporta como SVG com _house-theme_ flat/`adaptiveColors` (XML embarcado, legível em light/dark). | `/plugin install draw-io@torgge-skills` |
 
 ## Instalação

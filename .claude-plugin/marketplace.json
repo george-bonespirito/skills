@@ -16,6 +16,11 @@
       "name": "konsist-run-skill",
       "source": "./konsist-run-skill",
       "description": "Run-skill for the Konsist Kotlin static-analysis library: a container-first driver that scopes Kotlin and asserts architecture rules via the Konsist API, plus the from-source build gotchas."
+    },
+    {
+      "name": "check-after-implementation",
+      "source": "./check-after-implementation",
+      "description": "After any code implementation: run quality + security gates in a fix-and-recheck loop until blocking targets are green; same gate set must run as a blocking GitHub Actions job."
     }
   ]
 }
