@@ -6,8 +6,8 @@
     "name": "George Bonespirito",
     "email": "george@bonespirito.com"
   },
-  "homepage": "https://codeberg.org/torgge/skills",
-  "repository": "https://codeberg.org/torgge/skills",
+  "homepage": "https://github.com/torgge/skills",
+  "repository": "https://github.com/torgge/skills",
   "license": "MIT",
   "keywords": ["quality-gates", "security", "detekt", "sonar", "dependabot", "github-actions", "ci", "clean-code", "architecture"]
 }

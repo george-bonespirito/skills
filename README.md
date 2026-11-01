@@ -31,7 +31,7 @@ Glossário completo em [`CONTEXT.md`](./CONTEXT.md). Decisões de arquitetura em
 Este repositório é um marketplace (`.claude-plugin/marketplace.json` na raiz):
 
 ```
-/plugin marketplace add https://codeberg.org/torgge/skills
+/plugin marketplace add https://github.com/torgge/skills
 /plugin install draw-io@torgge-skills
 ```
 
