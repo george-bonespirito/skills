@@ -27,6 +27,19 @@ MIT — see [LICENSE](LICENSE).
 
 ## Changelog
 
+### 0.2.1 — 2026-11-01
+
+Applied second review patches:
+
+- Core gate in `⏭️`/`⚠️` (or missing/drifted twin) ⇒ FAIL unless waived by ADR; PASS WITH CI-PENDING only means waiting on CI; work is done only with PASS.
+- Sonar counts only with `-Dsonar.qualitygate.wait=true`.
+- New `dependency-review` job (actions/dependency-review-action v5.0.0, SHA-pinned, `fail-on-severity: high`).
+- Config gaps also fail in the twin (NVD key step, `-PfailBuildOnCVSS=7`, explicit `nvd { apiKey = System.getenv("NVD_API_KEY") }`).
+- Final iteration on a clean, committed tree; every iteration counts toward the cap; normalized signatures.
+- Weakening list extended (NOSONAR, eslint-disable, ts-ignore, audit exceptions, ignoreFailures/maxIssues, continue-on-error, SONAR_REQUIRED false, cap override > 2× default).
+- Skeleton: Dependabot/fork secret notes, `GITLEAKS_ENABLE_COMMENTS: 'false'`, `cache-provider: basic`, `persist-credentials: false`, `timeout-minutes: 60`, `<mutation-task>`, lockfile-based package manager.
+- All workflow jobs required in branch protection; grep output required as evidence; gate-set union rule moved into Stance.
+
 ### 0.2.0 — 2026-11-01
 
 Applied review patches P0–P2:

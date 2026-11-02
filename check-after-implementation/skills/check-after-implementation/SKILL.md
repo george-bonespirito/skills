@@ -16,7 +16,7 @@ This skill **anticipates** CI. Blocking truth lives in **GitHub Actions**. Local
 
 **A local PASS never authorizes merge.** Merge depends only on the required status check (the CI twin) being green on the PR head commit.
 
-**Twin requirement:** every project that uses this skill MUST have a **blocking** GitHub Actions job (or reusable workflow) that runs the **same** quality + security targets. Agent loop locally; CI enforces on every PR/push. A missing or drifted twin is always a **Blocker** in the report and caps the verdict at `PASS WITH CI-PENDING` (see *Agent duty when the twin is missing or drifts*).
+**Twin requirement:** every project that uses this skill MUST have a **blocking** GitHub Actions job (or reusable workflow) that runs the **same** quality + security targets. Agent loop locally; CI enforces on every PR/push. A missing or drifted twin is always a **Blocker** in the report and makes the verdict **FAIL** (see *Agent duty when the twin is missing or drifts*).
 
 ## Who runs it
 
@@ -34,7 +34,10 @@ Treat the gate checklist as a **contract**. After the first run:
 LOOP:
   1. Run all blocking gates for this repo (quality + security core + applicable suggested).
   2. If every blocking target is ✅ in a FULL iteration (and CI-pending items are listed, not faked):
-       emit the report with the verdict from "Verdict rules" → EXIT loop.
+       emit the report with the verdict from "Verdict rules" → EXIT local loop.
+       The final full iteration runs on a CLEAN tree: `git status --porcelain` is empty and every
+       change is committed (scans over `origin/<default-branch>..HEAD` do not see uncommitted changes).
+       PASS ⇒ done. PASS WITH CI-PENDING ⇒ NOT done yet: observe the twin; if it goes red, reopen the loop.
   3. If any blocking target is ❌:
        a. Fix the failures that are in scope of this change (code, tests, config the change introduced).
        b. Re-run the failed gates to iterate quickly. Before any PASS verdict, run the COMPLETE
@@ -47,7 +50,7 @@ LOOP:
          the agent cannot do alone.
      Proof of pre-existing debt: the same gate fails with the same signature at
      `git merge-base HEAD origin/<default-branch>`, checked out in a separate worktree
-     (e.g. `git worktree add ../base $(git merge-base HEAD origin/main) && cd ../base && ./gradlew <task>`).
+     (e.g. `git worktree add ../base $(git merge-base HEAD origin/<default-branch>) && cd ../base && ./gradlew <task>`).
      Attach the command and its output to the report.
      In the cap or debt case: Verdict FAIL, list exact blockers and what the human must decide—do **not** declare the implementation done.
 ```
@@ -55,12 +58,13 @@ LOOP:
 Rules for the loop:
 
 - **No "ship and hope"** — one red blocking gate ⇒ keep fixing or escalate; never mark done.
-- **Cap runaway loops** — a failure **signature** is `<gate> + <first error line>`.
+- **Cap runaway loops** — a failure **signature** is `<gate> + <first error line>`, normalized (strip line/column numbers, timestamps, durations, temp paths) so the same error is recognized across iterations.
+  - An **iteration** is one pass through step 1, full or partial; every iteration counts toward the cap.
   - The same signature in **3 consecutive iterations** ends the loop.
   - **6 total iterations** end the loop regardless of signatures (this catches A,B,A,B oscillation).
   - These are **defaults**. A project may override them in its config (e.g. `.check-after-implementation.yml` with `loop.maxSameSignature` / `loop.maxIterations`, or an equivalent section in the constitution/ADR); the project value wins and is quoted in the report.
   - Either cap ⇒ **Verdict FAIL**, with the attempts per signature and the blockers listed; the agent escalates to the user. No infinite loops burning tokens on the same error.
-- **Do not weaken targets** to exit the loop. Weakening includes: threshold edits; a new baseline entry (Detekt/Android Lint); new `.gitleaksignore` entries; Dependency-Check suppressions; `@Suppress` / `@SuppressWarnings`; `@Disabled` / `@Ignore`; deleting tests; excluding a module or path from a gate; changing `failBuildOnCVSS`. Any of these is allowed **only with explicit user approval**, recorded in the report's **Follow-ups**.
+- **Do not weaken targets** to exit the loop. Weakening includes: threshold edits; a new baseline entry (Detekt/Android Lint); new `.gitleaksignore` entries; Dependency-Check suppressions; `@Suppress` / `@SuppressWarnings`; `@Disabled` / `@Ignore`; deleting tests; excluding a module or path from a gate; changing `failBuildOnCVSS`; `// NOSONAR`; `eslint-disable` comments; `@ts-ignore` / `@ts-expect-error`; npm/pnpm audit exceptions; Detekt `ignoreFailures` or a raised `maxIssues`; `continue-on-error` or removing a step in the twin; setting `SONAR_REQUIRED: 'false'`; a loop-cap override above 2× the default. Any of these is allowed **only with explicit user approval**, recorded in the report's **Follow-ups**.
 - **CI-pending** (Sonar cloud secrets, org-level scanners) does not replace local greens; locals must be green first, then note what still waits on CI.
 
 ## When to use
@@ -82,7 +86,8 @@ Skip only for pure docs/ADR-only edits with no code or dependency change (still 
 3. **Fix or escalate** — if a gate fails and the fix is in scope of the change, fix it and re-run. If the gate is broken by pre-existing debt outside the change, prove it (merge-base check) and report it; do not silently widen scope.
 4. **Diff-aware when possible** — prefer PR-diff / changed-module scope when the project supports it.
 5. **Security is blocking** — critical-data exposure, committed secrets, and known vulnerable dependency versions introduced by the change are **FAIL**, not notes.
-6. **Report in a fixed shape** (see below). Fail closed: any blocking gate red, unconfigured, or without evidence ⇒ work is not done.
+6. **Report in a fixed shape** (see below). Fail closed: any blocking gate red, unconfigured (`⏭️`), config-gapped (`⚠️`), or without evidence ⇒ FAIL, work is not done—unless absence is accepted by an ADR waiver cited in the report.
+7. **Gate set = union** — thresholds come from project config; the gate set is the **union** of this skill's core gates and the twin's jobs. A core gate missing from CI is **drift**: run it locally anyway and report it. Changing policy requires an ADR.
 
 ## Core gates — quality (always attempt)
 
@@ -92,7 +97,7 @@ Skip only for pure docs/ADR-only edits with no code or dependency change (still 
 | **Clean Code** | Naming, size, nesting, dead code, magic numbers | Detekt, ktlint/spotless; constitution |
 | **Architecture** | Layer/package rules, dependency direction | **Konsist** and/or **ArchUnit** tests |
 | **Static analysis (Detekt)** | Smells, complexity, coroutines, style | `./gradlew detekt` |
-| **Sonar** | Portfolio gate (bugs, smells, coverage, duplications, security hotspots) | `sonar` in CI with secrets; local may be **CI-pending** |
+| **Sonar** | Portfolio gate (bugs, smells, coverage, duplications, security hotspots) | `./gradlew sonar -Dsonar.qualitygate.wait=true` in CI with secrets; counts only when the quality gate is **awaited**—an upload without wait is `⚠️` (FAIL). Local may be **CI-pending** |
 
 ## Core gates — security (always attempt)
 
@@ -105,7 +110,7 @@ Skip only for pure docs/ADR-only edits with no code or dependency change (still 
 
 ### Critical-data checklist (manual + automated)
 
-Apply to every changed handler, logger, serializer, and trace. For each item record the **`file:line` ranges reviewed** and the **greps used** (e.g. `git diff origin/<default>...HEAD | grep -nE 'log\.(info|debug|warn|error)|logger\.'`, new `*Dto`/`*Response` classes in the diff, new `@RestController`/`@*Mapping`). An unchecked item without evidence is ❌.
+Apply to every changed handler, logger, serializer, and trace. For each item record the **`file:line` ranges reviewed**, the **greps used**, and the **grep output (matched lines)**—the command alone is not evidence (e.g. `git diff origin/<default>...HEAD | grep -nE 'log\.(info|debug|warn|error)|logger\.'`, new `*Dto`/`*Response` classes in the diff, new `@RestController`/`@*Mapping`). An unchecked item without evidence is ❌.
 
 - [ ] Logs / metrics / spans do **not** include passwords, tokens, full card numbers, document IDs, or session cookies — files:lines reviewed: …
 - [ ] Exception messages and Problem Details bodies are safe for clients — files:lines reviewed: …
@@ -118,13 +123,14 @@ If the project has a dedicated "sensitive data" / privacy ADR or Detekt rule set
 ### Dependabot / version policy
 
 - Confirm `.github/dependabot.yml` (or Renovate) exists; new deps must be maintained and pinned as the repo requires
-- On the PR: list open Dependabot alerts and filter by the manifests you touched:
+- Dependabot alerts cover the **default branch**; dependencies **new in the PR** are checked by the `dependency-review` job (see skeleton).
+- List open Dependabot alerts and filter by the manifests you touched:
   `gh api "repos/{owner}/{repo}/dependabot/alerts?state=open" --paginate -q '.[] | [.dependency.manifest_path, .dependency.package.name, .security_advisory.severity] | @tsv'`
-- **Dependency-Check config:** verify `failBuildOnCVSS` ≤ 7 (or the project's policy value) and that an NVD API key is configured (`nvd.apiKey` / `NVD_API_KEY` secret). The default `failBuildOnCVSS = 11` never fails, and without an API key the NVD download is slow and flaky. If either is missing, the gate result is `⚠️ non-blocking` (listed in Blockers as a config gap), **not** ✅.
+- **Dependency-Check config:** verify `failBuildOnCVSS` ≤ 7 (or the project's policy value) and that an NVD API key is configured (`nvd.apiKey` / `NVD_API_KEY` secret). The default `failBuildOnCVSS = 11` never fails, and without an API key the NVD download is slow and flaky. The build must wire the key explicitly: `dependencyCheck { nvd { apiKey = System.getenv("NVD_API_KEY") } }` (do not rely on the plugin reading the environment). If either is missing, the gate result is `⚠️` (config gap, listed in Blockers) ⇒ FAIL for this core gate.
 - Prefer upgrading vulnerable transitives via BOM/platform rather than blind excludes
 - Record skipped upgrades with reason (never silent)
 
-If a listed tool is **not** in the repo, say so and run a substitute only if it covers the **same intent** (e.g. OSV-Scanner for Dependency-Check, TruffleHog for gitleaks) and record which one. If no substitute exists, the gate is `⏭️` (see Verdict rules: a core gate in `⏭️` is not green). Do not invent fake scores or fake CVE clears.
+If a listed tool is **not** in the repo, say so and run a substitute only if it covers the **same intent** (e.g. OSV-Scanner for Dependency-Check, TruffleHog for gitleaks) and record which one. If no substitute exists, the gate is `⏭️` (see Verdict rules: a core gate in `⏭️` is FAIL unless waived by ADR). Do not invent fake scores or fake CVE clears.
 
 ## Core gates — TypeScript / Node (when the diff touches TS/JS: Nest, React, etc.)
 
@@ -134,8 +140,10 @@ When the diff touches TypeScript/JavaScript, these are **core** (blocking), not 
 | --- | --- |
 | Type check | `npx tsc --noEmit` |
 | Lint + security rules | `npx eslint .` with a security plugin (e.g. `eslint-plugin-security`) |
-| Tests | the repo's `npm test` / `pnpm test` |
-| Dependency CVEs | `npm audit --audit-level=high` (or `pnpm audit --audit-level high`) |
+| Tests | `<pm> test` |
+| Dependency CVEs | `npm audit --audit-level=high` / `pnpm audit --audit-level high` |
+
+`<pm>` = the package manager implied by the lockfile (`package-lock.json` ⇒ npm, `pnpm-lock.yaml` ⇒ pnpm). Use it for install, scripts, audit, and the `setup-node` cache; never mix.
 
 The CI twin gets a parallel job using `actions/setup-node` that runs the same commands (see skeleton).
 
@@ -165,12 +173,15 @@ The CI job is the **authoritative** twin of this skill. Name it clearly (e.g. `c
 5. Upload reports as artifacts (Detekt, Kover/JaCoCo, PIT, Dependency-Check, gitleaks) for PR inspection.
 6. Keep secrets (Sonar token, Snyk token, NVD API key, gitleaks license) only in GitHub Secrets / Environments—never in the repo.
 7. Pin third-party actions by **commit SHA** (with the version tag as a comment); validate the Gradle wrapper before running it.
-8. Grant `security-events: write` **only** to the job that uploads SARIF (CodeQL etc.); everything else stays `contents: read`.
-9. Prefer a **reusable workflow** (`.github/workflows/check-after-implementation.yml` calling a shared `workflow_call`) when multiple repos share the bar.
+8. Every gate this skill marks `⚠️` by configuration must also **fail in the twin**: e.g. a step that fails when `NVD_API_KEY` is empty; `failBuildOnCVSS` passed as `-PfailBuildOnCVSS=7` and read by the build; no Detekt `ignoreFailures`; a minimal Kover verify rule; Sonar with `-Dsonar.qualitygate.wait=true`. The build must wire `nvd { apiKey = System.getenv("NVD_API_KEY") }` explicitly.
+9. Grant `security-events: write` **only** to the job that uploads SARIF (CodeQL etc.); everything else stays `contents: read`.
+10. Prefer a **reusable workflow** (`.github/workflows/check-after-implementation.yml` calling a shared `workflow_call`) when multiple repos share the bar.
 
 ### Minimal skeleton (Kotlin/JVM Gradle — adapt to the repo)
 
 `<…>` values are **placeholders**: replace each with the real task from `./gradlew tasks --all`, or delete the step. SHAs were resolved from the actions' latest releases when this skill was written; refresh them with Dependabot (`package-ecosystem: github-actions`).
+
+**Secrets on bot and fork PRs:** Dependabot PRs read only **Dependabot secrets**—register `SONAR_TOKEN` and `NVD_API_KEY` there too. Fork PRs receive no secrets: the job fails by design, and merge requires a maintainer re-run (or a trusted-branch rerun). `setup-gradle` uses `cache-provider: basic` (the default enhanced provider is proprietary and needs its terms accepted).
 
 ```yaml
 # .github/workflows/check-after-implementation.yml
@@ -188,6 +199,7 @@ permissions:
 jobs:
   quality-and-security:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
       pull-requests: read
@@ -200,6 +212,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
@@ -209,6 +222,8 @@ jobs:
           java-version: '21'
 
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-provider: basic
 
       - name: Grant gradlew (wrapper validated above)
         run: chmod +x gradlew
@@ -227,10 +242,16 @@ jobs:
         run: ./gradlew <coverage-verify-task> <crap-task> --no-daemon   # e.g. koverVerify
 
       - name: Mutation (diff-scoped when configured)
-        run: ./gradlew pitest --no-daemon
+        run: ./gradlew <mutation-task> --no-daemon   # e.g. pitest
 
-      - name: Dependency / CVE (failBuildOnCVSS <= 7, NVD key required)
-        run: ./gradlew dependencyCheckAnalyze --no-daemon
+      - name: Fail if NVD API key is missing
+        if: env.NVD_API_KEY == ''
+        run: |
+          echo "::error::NVD_API_KEY missing; Dependency-Check would be a config gap"
+          exit 1
+
+      - name: Dependency / CVE (build reads -PfailBuildOnCVSS and NVD_API_KEY)
+        run: ./gradlew dependencyCheckAnalyze -PfailBuildOnCVSS=7 --no-daemon
 
       - name: Secret scan
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
@@ -238,10 +259,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Required for repos owned by an organization (free key from gitleaks.io).
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          # Comments need pull-requests: write; keep them off (alternative: grant
+          # pull-requests: write only on a separate gitleaks job).
+          GITLEAKS_ENABLE_COMMENTS: 'false'
 
       - name: Sonar
         if: env.SONAR_TOKEN != ''
-        run: ./gradlew sonar --no-daemon
+        run: ./gradlew sonar -Dsonar.qualitygate.wait=true --no-daemon
 
       - name: Fail if Sonar is required but secret is missing
         if: env.SONAR_TOKEN == '' && env.SONAR_REQUIRED == 'true'
@@ -260,10 +284,15 @@ jobs:
   typescript:
     # Keep only when the repo has TS/JS; mirrors "Core gates — TypeScript / Node".
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Use the package manager implied by the lockfile; this example assumes npm
+      # (for pnpm: add pnpm/action-setup, cache: pnpm, pnpm install --frozen-lockfile, pnpm audit).
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
@@ -273,6 +302,21 @@ jobs:
       - run: npx eslint .
       - run: npm test
       - run: npm audit --audit-level=high
+
+  dependency-review:
+    # Checks dependencies newly introduced by the PR (Dependabot alerts cover the default branch).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
 
   # sast:
   #   Only a job that uploads SARIF (CodeQL, Semgrep, Trivy) gets security-events: write.
@@ -285,14 +329,14 @@ jobs:
 
 ### Branch protection
 
-Require the job name as a status check before merge. Dependabot security updates stay enabled alongside this job—they are complementary, not a substitute.
+Require **every** job of the workflow as a required status check before merge (`quality-and-security`, `typescript` when present, `dependency-review`), not just one job name. Dependabot security updates stay enabled alongside this job—they are complementary, not a substitute.
 
 ### Agent duty when the twin is missing or drifts
 
 If CI lacks the job, or local tasks ≠ workflow tasks:
 
 1. Report the gap in the Quality & Security Report.
-2. A missing or drifted twin is **always listed in Blockers** and caps the verdict at `PASS WITH CI-PENDING`. The agent writes the proposed workflow YAML (aligned to current `./gradlew tasks --all`) into the report; it opens a PR for it **only if the user asked** to wire CI.
+2. A missing or drifted twin is **always listed in Blockers** and makes the verdict **FAIL** until the twin exists and is aligned. The agent writes the proposed workflow YAML (aligned to current `./gradlew tasks --all`) into the report; it opens a PR for it **only if the user asked** to wire CI.
 3. Do not claim "CI covered" until the twin is green on the PR.
 
 ## Execution recipe (agent)
@@ -335,8 +379,8 @@ Emit **once**, when the loop exits:
 | --- | --- | --- | --- | --- |
 | Dependabot / CVE / versions | `dependencyCheckAnalyze`, `gh api …/dependabot/alerts` | ✅/❌/⚠️/⏭️ | exit code, report path, failBuildOnCVSS value | … |
 | Secrets on diff | `gitleaks …` | ✅/❌/⏭️ | exit code, report path | … |
-| Critical-data exposure | diff review (+ rules) | ✅/❌/⏭️ | files:lines reviewed, greps used | … |
-| Endpoint safe defaults | diff review | ✅/❌/⏭️ | files:lines reviewed, greps used | … |
+| Critical-data exposure | diff review (+ rules) | ✅/❌/⏭️ | files:lines reviewed, greps + matched lines | … |
+| Endpoint safe defaults | diff review | ✅/❌/⏭️ | files:lines reviewed, greps + matched lines | … |
 
 **Blockers:** … (include: tool missing, twin missing/drifted, config gaps)
 **Debt outside diff:** … (merge-base command + output)
@@ -346,14 +390,16 @@ Emit **once**, when the loop exits:
 ```
 
 - **Evidence is mandatory.** Automated gates: exit code and report path. Manual gates: `file:line` ranges reviewed and greps used. A ✅ without evidence counts as ❌.
-- `⏭️` = not configured. A **core** gate in `⏭️` is **not green**: the verdict is at most `PASS WITH CI-PENDING`, and the gate is listed in Blockers as "tool missing". A **suggested** gate in `⏭️` does not affect the verdict.
-- `⚠️ non-blocking` = gate ran but its configuration cannot fail (e.g. `failBuildOnCVSS` > policy, missing NVD key); listed in Blockers as a config gap; never counts as ✅.
+- `⏭️` = not configured. A **core** gate in `⏭️` ⇒ **FAIL**; the gap is listed in Blockers as "tool missing" and the human decides: install the tool, or accept its absence via an ADR (waiver cited in the report, gate then shown as `⏭️ waived: ADR-…`). A **suggested** gate in `⏭️` does not affect the verdict.
+- `⚠️` = gate ran but its configuration cannot fail (e.g. `failBuildOnCVSS` > policy, missing NVD key, Sonar without quality-gate wait). A **core** gate in `⚠️` ⇒ **FAIL** (config gap in Blockers), same waiver path as `⏭️`; never counts as ✅.
 
 ### Verdict rules
 
 - **PASS** — every blocking gate ✅ (with evidence) in the final **full** iteration, **and** the CI twin is present, aligned, and green on the head SHA, with the run URL cited.
-- **PASS WITH CI-PENDING** — every local blocking gate ✅, but at least one of: twin missing or drifted, twin run not yet observed, a cloud-only gate (e.g. Sonar) pending, or a core gate `⏭️`/`⚠️`.
-- **FAIL** — any blocking gate ❌, the loop cap was hit, or blocking debt outside the diff remains.
+- **PASS WITH CI-PENDING** — every local blocking gate ✅ (or ADR-waived), and the only open items are **waiting on CI**: the twin run not yet observed, or a cloud-only gate (e.g. Sonar) pending.
+- **FAIL** — any blocking gate ❌; any core gate `⏭️`/`⚠️` without an ADR waiver; twin missing or drifted; the loop cap was hit; or blocking debt outside the diff remains.
+
+**Done definition:** PASS and PASS WITH CI-PENDING both end the **local** loop, but the work is **done only with PASS**. PASS WITH CI-PENDING obliges the agent to observe the twin run and, if it goes red, reopen the loop (see *Who runs it*).
 
 No verdict authorizes merge by itself; the required status check does.
 
@@ -369,8 +415,8 @@ No verdict authorizes merge by itself; the required status check does.
 - Weakening thresholds, adding baselines/ignores/suppressions, or disabling tests to exit the loop (allowed only with explicit user approval recorded in Follow-ups)
 - Writing invented Gradle tasks into CI YAML instead of checking `./gradlew tasks --all`
 - Treating Sonar or Dependabot as optional when CI blocks on them
-- Treating a local PASS as merge authorization
-- Policy conflicts: thresholds come from project config; the gate set is the **union** of this skill's core gates and the twin's jobs. A core gate missing from CI is **drift**: run it locally anyway and report it. Changing policy requires an ADR.
+- Treating a local PASS as merge authorization, or PASS WITH CI-PENDING as done
+- Policy conflicts resolved by prose instead of config/ADR (see Stance §7)
 
 ## Relationship to other skills
 

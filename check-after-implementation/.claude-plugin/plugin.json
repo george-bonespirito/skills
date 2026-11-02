@@ -1,7 +1,7 @@
 {
   "name": "check-after-implementation",
   "description": "After any code implementation: run quality + security gates in a fix-and-recheck loop until blocking targets are green; same gate set must run as a blocking GitHub Actions job.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "George Bonespirito",
     "email": "george@bonespirito.com"
