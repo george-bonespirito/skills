@@ -64,7 +64,7 @@ Rules for the loop:
   - **6 total iterations** end the loop regardless of signatures (this catches A,B,A,B oscillation).
   - These are **defaults**. A project may override them in its config (e.g. `.check-after-implementation.yml` with `loop.maxSameSignature` / `loop.maxIterations`, or an equivalent section in the constitution/ADR); the project value wins and is quoted in the report.
   - Either cap ⇒ **Verdict FAIL**, with the attempts per signature and the blockers listed; the agent escalates to the user. No infinite loops burning tokens on the same error.
-- **Do not weaken targets** to exit the loop. Weakening includes: threshold edits; a new baseline entry (Detekt/Android Lint); new `.gitleaksignore` entries; Dependency-Check suppressions; `@Suppress` / `@SuppressWarnings`; `@Disabled` / `@Ignore`; deleting tests; excluding a module or path from a gate; changing `failBuildOnCVSS`; `// NOSONAR`; `eslint-disable` comments; `@ts-ignore` / `@ts-expect-error`; npm/pnpm audit exceptions; Detekt `ignoreFailures` or a raised `maxIssues`; `continue-on-error` or removing a step in the twin; setting `SONAR_REQUIRED: 'false'`; a loop-cap override above 2× the default. Any of these is allowed **only with explicit user approval**, recorded in the report's **Follow-ups**.
+- **Do not weaken targets** to exit the loop. Weakening includes: threshold edits; a new baseline entry (Detekt/Android Lint); new `.gitleaksignore` entries; Dependency-Check suppressions; `@Suppress` / `@SuppressWarnings`; `@Disabled` / `@Ignore`; deleting tests; excluding a module or path from a gate; changing `failBuildOnCVSS`; `// NOSONAR`; `eslint-disable` comments; `@ts-ignore` / `@ts-expect-error`; npm/pnpm audit exceptions; Detekt `ignoreFailures` or a raised `maxIssues`; `continue-on-error` or removing a step in the twin; setting `SONAR_REQUIRED: 'false'`; a loop-cap override above 2× the default; editing a protected path (see *Protected gate config*—never allowed for the agent, even with an ADR it writes). The others are is allowed **only with explicit user approval**, recorded in the report's **Follow-ups**.
 - **CI-pending** (Sonar cloud secrets, org-level scanners) does not replace local greens; locals must be green first, then note what still waits on CI.
 
 ## When to use
@@ -107,6 +107,7 @@ Skip only for pure docs/ADR-only edits with no code or dependency change (still 
 | **Secret & credential leak** | No tokens, passwords, private keys, or connection strings in the diff | `gitleaks git --log-opts="origin/<default>..HEAD"` / TruffleHog / `detect-secrets` on the diff |
 | **Critical / sensitive data exposure** | PII, secrets, financial/health identifiers, tokens must not leak via logs, APIs, errors, or traces | Diff review with evidence (files + greps) + Detekt/Sonar security rules; sanitize errors; redact OTel attributes |
 | **Safe defaults in new endpoints** | Authz, validation, injection, mass-assignment | Diff review with evidence; authz consistent with neighbors; Bean Validation; parameterized queries only |
+| **Protected gate config** | The agent does not edit the files that define or enforce the gates | `git diff --name-only <base>...HEAD` matched against the protected set (see below) |
 
 ### Critical-data checklist (manual + automated)
 
@@ -119,6 +120,15 @@ Apply to every changed handler, logger, serializer, and trace. For each item rec
 - [ ] Test fixtures do not embed production-like secrets — files:lines reviewed: …
 
 If the project has a dedicated "sensitive data" / privacy ADR or Detekt rule set, that document wins.
+
+### Protected gate config
+
+The project may declare `.quality/protected-paths` (one glob per line, relative to the project root; `#` comments allowed). The default protected set applies even without that file: the files holding gate thresholds (e.g. `pit-thresholds.properties`), the build logic that loads them, `.github/CODEOWNERS`, and `.quality/protected-paths` itself.
+
+- If the diff against the merge-base (`<base>...HEAD`, the same base used above) touches any protected path ⇒ ❌, **FAIL** (core, blocking).
+- This gate **cannot be waived by the agent**, not even by an ADR the agent writes; only the human owner can. The agent does **not** loop on it: it stops and escalates to the human (Blockers lists the touched paths).
+- Why: on private repos on the GitHub Free plan, branch protection and CODEOWNERS are not enforced; this gate is the compensating control. When CI is wired, the same rule becomes a twin job.
+- Limitation: it protects against agents that follow this skill, not against agents that ignore it.
 
 ### Dependabot / version policy
 
@@ -397,7 +407,7 @@ Emit **once**, when the loop exits:
 
 - **PASS** — every blocking gate ✅ (with evidence) in the final **full** iteration, **and** the CI twin is present, aligned, and green on the head SHA, with the run URL cited.
 - **PASS WITH CI-PENDING** — every local blocking gate ✅ (or ADR-waived), and the only open items are **waiting on CI**: the twin run not yet observed, or a cloud-only gate (e.g. Sonar) pending.
-- **FAIL** — any blocking gate ❌; any core gate `⏭️`/`⚠️` without an ADR waiver; twin missing or drifted; the loop cap was hit; or blocking debt outside the diff remains.
+- **FAIL** — any blocking gate ❌; any core gate `⏭️`/`⚠️` without an ADR waiver; twin missing or drifted; the loop cap was hit; a protected path was touched (human owner only, no agent waiver); or blocking debt outside the diff remains.
 
 **Done definition:** PASS and PASS WITH CI-PENDING both end the **local** loop, but the work is **done only with PASS**. PASS WITH CI-PENDING obliges the agent to observe the twin run and, if it goes red, reopen the loop (see *Who runs it*).
 

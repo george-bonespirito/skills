@@ -27,6 +27,11 @@ MIT — see [LICENSE](LICENSE).
 
 ## Changelog
 
+### 0.2.2 — 2026-11-02
+
+- New core blocking gate **Protected gate config**: a diff touching `.quality/protected-paths` globs (or the default set: threshold files, the build logic that loads them, `.github/CODEOWNERS`, the list itself) ⇒ FAIL; only the human owner can waive; the agent escalates instead of looping. Compensates for unenforced branch protection/CODEOWNERS on GitHub Free private repos.
+- Editing protected paths added to the weakening list.
+
 ### 0.2.1 — 2026-11-01
 
 Applied second review patches:
