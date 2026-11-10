@@ -97,6 +97,7 @@ Skip only for pure docs/ADR-only edits with no code or dependency change (still 
 | **Clean Code** | Naming, size, nesting, dead code, magic numbers | Detekt, ktlint/spotless; constitution |
 | **Architecture** | Layer/package rules, dependency direction | **Konsist** and/or **ArchUnit** tests |
 | **Static analysis (Detekt)** | Smells, complexity, coroutines, style | `./gradlew detekt` |
+| **Failure regression** | Every fixed failure becomes a deterministic regression check, so it cannot silently return | Applies when the change fixes a bug or an agent failure; see *Failure regression* below |
 | **Sonar** | Portfolio gate (bugs, smells, coverage, duplications, security hotspots) | `./gradlew sonar -Dsonar.qualitygate.wait=true` in CI with secrets; counts only when the quality gate is **awaited**—an upload without wait is `⚠️` (FAIL). Local may be **CI-pending** |
 
 ## Core gates — security (always attempt)
@@ -129,6 +130,21 @@ The project may declare `.quality/protected-paths` (one glob per line, relative 
 - This gate **cannot be waived by the agent**, not even by an ADR the agent writes; only the human owner can. The agent does **not** loop on it: it stops and escalates to the human (Blockers lists the touched paths).
 - Why: on private repos on the GitHub Free plan, branch protection and CODEOWNERS are not enforced; this gate is the compensating control. When CI is wired, the same rule becomes a twin job.
 - Limitation: it protects against agents that follow this skill, not against agents that ignore it.
+
+### Failure regression
+
+Applies when the change **fixes a failure**: a bug, a failed acceptance criterion, or an agent that ignored a spec rule or constitution rule.
+
+1. **Classify the origin** — `code` (the implementation was wrong) or `harness` (the spec was ambiguous, a skill/prompt was weak, or a rule had no executable check).
+2. **Reproducing check is required** — the diff must add a deterministic check that fails without the fix and passes with it:
+   - `code` ⇒ a test that reproduces the failure; its detection power is proven by the mutation gate (PIT/Stryker) on the diff.
+   - `harness` ⇒ the spec/skill/constitution adjustment **plus** an executable check for the rule (acceptance test, Konsist/ArchUnit rule, or static check), referenced by the rule id (`R-NNN`) when the spec uses ids.
+   - Evidence: the check run against the pre-fix code (e.g. `git stash` of the fix, or the failing CI run) showing red, and the post-fix run showing green.
+3. **LLM-as-a-judge is not a gate** — it is not deterministic; it may complement exploration but never satisfies this gate.
+4. **Record it** — append one line to `.quality/falhas.md` (create it if absent): `date | rule id or area | cause | origin (code/harness) | link to the check`.
+5. **Repeated failure** — if the same rule id or area already appears in `.quality/falhas.md`, report it in **Follow-ups** as a harness problem to fix, not only a code fix.
+
+Missing reproducing check or missing record line ⇒ ❌, **FAIL** (core, blocking). The agent may loop on it like any other gate.
 
 ### Dependabot / version policy
 
@@ -383,6 +399,7 @@ Emit **once**, when the loop exits:
 | Gate | Command | Result | Evidence | Notes |
 | --- | --- | --- | --- | --- |
 | … | `./gradlew …` | ✅/❌/⚠️/⏭️ | exit 0, `build/reports/…` | … |
+| Failure regression | reproducing check pre/post fix | ✅/❌/n.a. | origin, red run before fix, green after, `.quality/falhas.md` line | n.a. when the change fixes no failure |
 
 ### Security
 | Gate | Command / check | Result | Evidence | Notes |
