@@ -23,6 +23,7 @@ Glossário completo em [`CONTEXT.md`](./CONTEXT.md). Decisões de arquitetura em
 |---|---|---|
 | [`check-after-implementation/`](./check-after-implementation) | Após implementação: gates de qualidade e segurança em loop até ficarem verdes; twin bloqueante no GitHub Actions. | `/plugin install check-after-implementation@torgge-skills` |
 | [`draw-io/`](./draw-io) | Gera diagramas draw.io editáveis e exporta como SVG com _house-theme_ flat/`adaptiveColors` (XML embarcado, legível em light/dark). | `/plugin install draw-io@torgge-skills` |
+| [`second-brain/`](./second-brain) | Second brain em Markdown com fonte para cada resposta (regras em `AGENTS.md`, notes + sources com data de checagem, log de decisões com superseded) e bootstrap idempotente para repos novos ou existentes. | `/plugin install second-brain@torgge-skills` |
 
 ## Instalação
 

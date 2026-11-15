@@ -1,0 +1,13 @@
+{
+  "name": "second-brain",
+  "description": "Operate a source-backed Markdown second brain (rules, evidence, decision history) and bootstrap one into a new or existing repo, agent-agnostic via AGENTS.md.",
+  "version": "0.1.0",
+  "author": {
+    "name": "George Bonespirito",
+    "email": "george@bonespirito.com"
+  },
+  "homepage": "https://github.com/george-bonespirito/skills",
+  "repository": "https://github.com/george-bonespirito/skills",
+  "license": "MIT",
+  "keywords": ["second-brain", "knowledge-base", "memory", "markdown", "citations", "decision-log", "agents-md", "claude-code"]
+}

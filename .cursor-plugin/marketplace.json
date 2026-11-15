@@ -15,6 +15,11 @@
       "name": "konsist-run-skill",
       "source": "./konsist-run-skill",
       "description": "Run-skill for the Konsist Kotlin static-analysis library: a container-first driver that scopes Kotlin and asserts architecture rules via the Konsist API, plus the from-source build gotchas."
+    },
+    {
+      "name": "second-brain",
+      "source": "./second-brain",
+      "description": "Operate a source-backed Markdown second brain (rules, evidence, decision history) and bootstrap one into a new or existing repo, agent-agnostic via AGENTS.md."
     }
   ]
 }
