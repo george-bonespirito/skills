@@ -21,6 +21,11 @@
       "name": "check-after-implementation",
       "source": "./check-after-implementation",
       "description": "After any code implementation: run quality + security gates in a fix-and-recheck loop until blocking targets are green; same gate set must run as a blocking GitHub Actions job."
+    },
+    {
+      "name": "second-brain",
+      "source": "./second-brain",
+      "description": "Operate a source-backed Markdown second brain (rules, evidence, decision history) and bootstrap one into a new or existing repo, agent-agnostic via AGENTS.md."
     }
   ]
 }
