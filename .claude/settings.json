@@ -17,10 +17,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/auto-pr-codeberg.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/auto-pr-github.sh\"",
             "if": "Bash(git push*)",
             "timeout": 30,
-            "statusMessage": "Abrindo PR no Codeberg…"
+            "statusMessage": "Abrindo PR no GitHub…"
           }
         ]
       }

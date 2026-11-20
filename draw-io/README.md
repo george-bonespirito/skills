@@ -26,7 +26,7 @@ A Claude Code / Cursor plugin that generates **editable draw.io diagrams** and e
 Add this repository as a plugin marketplace, then install:
 
 ```
-/plugin marketplace add https://codeberg.org/torgge/skills
+/plugin marketplace add https://github.com/george-bonespirito/skills
 /plugin install draw-io@torgge-skills
 ```
 

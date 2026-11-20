@@ -12,7 +12,7 @@ skills/check-after-implementation/
 ## Install
 
 ```text
-/plugin marketplace add https://github.com/torgge/skills
+/plugin marketplace add https://github.com/george-bonespirito/skills
 /plugin install check-after-implementation@torgge-skills
 ```
 

@@ -6,8 +6,8 @@
     "name": "George Bonespirito",
     "email": "george@bonespirito.com"
   },
-  "homepage": "https://codeberg.org/torgge/skills",
-  "repository": "https://codeberg.org/torgge/skills",
+  "homepage": "https://github.com/george-bonespirito/skills",
+  "repository": "https://github.com/george-bonespirito/skills",
   "license": "MIT",
   "keywords": ["konsist", "kotlin", "static-analysis", "architecture-testing", "gradle", "run-skill"]
 }

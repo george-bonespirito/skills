@@ -38,8 +38,8 @@ metadata:
   "description": "<one-line>",
   "version": "0.1.0",
   "author": { "name": "George Bonespirito", "email": "george@bonespirito.com" },
-  "homepage": "https://codeberg.org/torgge/skills",
-  "repository": "https://codeberg.org/torgge/skills",
+  "homepage": "https://github.com/george-bonespirito/skills",
+  "repository": "https://github.com/george-bonespirito/skills",
   "license": "MIT",
   "keywords": ["<...>"]
 }
@@ -84,4 +84,4 @@ All must pass. The `validate-manifest` hook also fires on each manifest edit.
 
 ### 7. Commit + PR
 
-Branch `feature/<plugin>` off `main`, Conventional Commit (`✨ feat(<plugin>): …`). Push to `origin` (Codeberg) — the `auto-pr-codeberg` hook opens the PR. That commit is the publish.
+Branch `feature/<plugin>` off `main`, Conventional Commit (`✨ feat(<plugin>): …`). Push to `origin` (GitHub) — the `auto-pr-github` hook opens the PR. That commit is the publish.

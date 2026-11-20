@@ -38,5 +38,5 @@ Plugins are **declarative bundles the host installs** — they cannot run bash o
 ## Git
 
 - Conventional Commits + emoji (see `~/.claude/rules/commits.md`). One plugin per PR; branch off `main` (`feature/<slug>`), never commit to `main` directly.
-- **Mirror GitHub:** `origin` = Codeberg (canonical). Remote `github` = `github.com/torgge/skills`, a public mirror that exists only for the Cursor marketplace (its publish flow authenticates via GitHub repo ownership). To publish: `git push github <branch>` after the canonical `git push origin`.
+- **Remote:** `origin` = GitHub (`github.com/george-bonespirito/skills`), único e canônico desde 2026-11-20 (o Codeberg foi apagado). O mesmo repo serve o marketplace do Claude e o publish do Cursor; não há mais mirror.
 - MCP: `.claude/settings.local.json` enables the `graphify` MCP server for this repo.

@@ -1,12 +1,12 @@
 ---
 name: publish
-description: Publish a plugin from this repo — conformance check, commit, push to Codeberg (auto-PR), and after merge, mirror to GitHub and run the Cursor marketplace submit runbook. Use when a plugin is ready to publish or re-publish.
+description: Publish a plugin from this repo — conformance check, commit, push to GitHub (auto-PR), and after merge run the Cursor marketplace submit runbook. Use when a plugin is ready to publish or re-publish.
 disable-model-invocation: true
 ---
 
 # publish
 
-End-to-end publish flow for this dual marketplace. `origin` = Codeberg (canonical), `github` = public mirror for Cursor's publish gate. Committing a plugin here + listing it is the publish; the Cursor marketplace submit is a separate one-time step per publisher.
+End-to-end publish flow for this dual marketplace. `origin` = GitHub (`george-bonespirito/skills`), single canonical remote — it also satisfies Cursor's publish gate (repo ownership). Committing a plugin here + listing it is the publish; the Cursor marketplace submit is a separate one-time step per publisher.
 
 Ask which plugin is being published. Then:
 
@@ -30,26 +30,25 @@ Branch `feature/<plugin>` (or `fix/`) off `main` — never commit to `main` dire
 ```bash
 git push -u origin feature/<plugin>
 ```
-The `auto-pr-codeberg` hook opens the PR. **Then STOP and wait for the user to approve/merge** — never merge yourself (see the pr-create-await-approval convention). Do not proceed to step 4 until the user confirms the merge.
+The `auto-pr-github` hook opens the PR. **Then STOP and wait for the user to approve/merge** — never merge yourself (see the pr-create-await-approval convention). Do not proceed to step 4 until the user confirms the merge.
 
-## 4. After merge — sync + mirror
+## 4. After merge — sync
 
-Verify the merge actually landed, then mirror to GitHub:
+Verify the merge actually landed (GitHub is the only remote, so there is no mirror step):
 ```bash
 git fetch origin --prune
 git switch main && git pull origin main --ff-only
-git push github main
 ```
-Confirm `github main` SHA == local `main`. If `git push github` fails with "Could not resolve host", the local DNS is blocking `github.com` (a focus/hosts blocker) — ask the user to run it via `!` or fix DNS.
+Confirm `origin/main` SHA == local `main`.
 
 ## 5. Cursor marketplace submit (manual, one-time)
 
 Only the repo owner submits, authenticating via GitHub ownership. This is a browser step — you cannot do it. Provide the runbook:
 
-- Open `https://cursor.com/marketplace/publish`, log in with the GitHub account that owns `torgge/skills`.
-- **GitHub repository:** `https://github.com/torgge/skills`
+- Open `https://cursor.com/marketplace/publish`, log in with the GitHub account that owns `george-bonespirito/skills`.
+- **GitHub repository:** `https://github.com/george-bonespirito/skills`
 - **Logotype URL** (optional, 1:1 SVG/PNG): if the plugin has `assets/logo.svg`, serve via jsDelivr for the correct `image/svg+xml` MIME: `https://cdn.jsdelivr.net/gh/torgge/skills@main/<plugin>/assets/logo.svg` — NOT `raw.githubusercontent.com` (serves `text/plain`).
-- **Website URL:** `https://codeberg.org/torgge/skills`
+- **Website URL:** `https://github.com/george-bonespirito/skills`
 - Submit → pending Cursor team review.
 
 ## Notes
